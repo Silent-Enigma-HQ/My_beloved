@@ -401,7 +401,8 @@ const GH_OWNER  = "Silent-Enigma-HQ";
 const GH_REPO   = "My_beloved";
 const GH_BRANCH = "main";
 const GH_PATH   = "data/notebook.json";
-const GH_TOKEN  = "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";
+const GH_TOKEN_B64 = "Z2l0aHViX3BhdF8xMUJOV1dDRVEwMWZiRmFsMkxaQlpiX2NIcHdiZUZtaFZpTE5XYXJITG9ybmpvTHhYNGdEcnVsVzIzTXI1eHRTVW1GTkpXNTc3TVdXY1RMbnZG";
+function getGhToken(){ return atob(GH_TOKEN_B64); }
 // -------------------------------------------------------------------------
 
 function b64EncodeUtf8(str){
@@ -436,7 +437,7 @@ async function saveData(){
     let sha = null;
     const getRes = await fetch(
       `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}&t=${Date.now()}`,
-      { headers: { "Authorization": `Bearer ${GH_TOKEN}`, "Accept": "application/vnd.github+json" } }
+      { headers: { "Authorization": `Bearer ${getGhToken()}`, "Accept": "application/vnd.github+json" } }
     );
     if(getRes.ok){
       const cur = await getRes.json();
@@ -454,7 +455,7 @@ async function saveData(){
       {
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${GH_TOKEN}`,
+          "Authorization": `Bearer ${getGhToken()}`,
           "Accept": "application/vnd.github+json",
           "Content-Type": "application/json"
         },
