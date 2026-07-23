@@ -396,73 +396,38 @@ let state = { view:"cover", idx:0, editMode:false, opened:new Set(), pickerIndex
 let tapCount = 0;
 let tapTimer = null;
 
-// ---------- НАСТРОЙКИ GITHUB (заполню, когда пришлёшь свои данные) ----------
-const GH_OWNER  = "Silent-Enigma-HQ";
-const GH_REPO   = "My_beloved";
-const GH_BRANCH = "main";
-const GH_PATH   = "data/notebook.json";
-const GH_TOKEN_B64 = "Z2l0aHViX3BhdF8xMUJOV1dDRVEwMWZiRmFsMkxaQlpiX2NIcHdiZUZtaFZpTE5XYXJITG9ybmpvTHhYNGdEcnVsVzIzTXI1eHRTVW1GTkpXNTc3TVdXY1RMbnZG";
-function getGhToken(){ return atob(GH_TOKEN_B64); }
-// -------------------------------------------------------------------------
-
-function b64EncodeUtf8(str){
-  return btoa(unescape(encodeURIComponent(str)));
-}
-function b64DecodeUtf8(str){
-  return decodeURIComponent(escape(atob(str)));
-}
+// ---------- НАСТРОЙКА: адрес твоего Cloudflare Worker ----------
+const WORKER_URL = "https://damp-bonus-fad2.stacknomadhq.workers.dev";
+// -----------------------------------------------------------------
 
 async function loadData(){
   try{
-    const res = await fetch(
-      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}&t=${Date.now()}`,
-      { headers: { "Accept": "application/vnd.github+json" } }
-    );
+    const res = await fetch(`${WORKER_URL}/load`, { headers: { "Accept": "application/json" } });
     if(res.ok){
-      const file = await res.json();
-      const decoded = b64DecodeUtf8(file.content.replace(/\n/g,''));
-      const parsed = JSON.parse(decoded);
+      const parsed = await res.json();
       if(parsed && parsed.letters){
         data = parsed;
         if(!data.foreword) data.foreword = JSON.parse(JSON.stringify(DEFAULT_FOREWORD));
       }
+      // если parsed.notFound — файла в репозитории ещё нет, остаёмся на данных по умолчанию
     }
-    // если res не ok (файла ещё нет) — просто остаёмся на данных по умолчанию
-  }catch(e){ /* нет сети или файла ещё нет — используем дефолт */ }
+  }catch(e){ /* нет сети — используем дефолт */ }
   render();
 }
 
 async function saveData(){
   try{
-    let sha = null;
-    const getRes = await fetch(
-      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}&t=${Date.now()}`,
-      { headers: { "Authorization": `Bearer ${getGhToken()}`, "Accept": "application/vnd.github+json" } }
-    );
-    if(getRes.ok){
-      const cur = await getRes.json();
-      sha = cur.sha;
+    const res = await fetch(`${WORKER_URL}/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    let ok = res.ok;
+    if(ok){
+      const result = await res.json();
+      ok = !!result.ok;
     }
-    const body = {
-      message: "обновление блокнота",
-      content: b64EncodeUtf8(JSON.stringify(data, null, 2)),
-      branch: GH_BRANCH
-    };
-    if(sha) body.sha = sha;
-
-    const putRes = await fetch(
-      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`,
-      {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${getGhToken()}`,
-          "Accept": "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      }
-    );
-    showToast(putRes.ok ? "Сохранено" : "Не удалось сохранить");
+    showToast(ok ? "Сохранено" : "Не удалось сохранить");
   }catch(e){
     showToast("Ошибка сохранения");
   }
