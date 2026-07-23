@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Для тебя</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Caveat:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6EFE3;
+    --paper-dark:#ECE0C9;
+    --ink:#2E2A3D;
+    --ink-soft:#5A5468;
+    --wine:#7A2E3D;
+    --wine-dark:#54202B;
+    --sage:#6E7F5C;
+    --gold:#B9975B;
+    --blush:#E9CBC6;
+    --shadow: 0 18px 40px -18px rgba(46,42,61,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Manrope',sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 15% 10%, rgba(122,46,61,0.06), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(110,127,92,0.08), transparent 45%),
+      repeating-linear-gradient(0deg, rgba(46,42,61,0.015) 0px, rgba(46,42,61,0.015) 1px, transparent 1px, transparent 3px),
+      var(--paper);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:28px 16px 60px;
+  }
+  #stage{
+    width:100%; max-width:560px;
+    perspective:1600px;
+  }
+  #app{
+    width:100%;
+    transform-origin:left center;
+    transform:rotateY(0deg);
+    opacity:1;
+    backface-visibility:hidden;
+    transition:transform .34s cubic-bezier(.45,0,.2,1), opacity .3s ease;
+  }
+  #app.pt-out-fwd{ transform:rotateY(-94deg); opacity:0; }
+  #app.pt-out-back{ transform:rotateY(94deg); opacity:0; }
+  #app.pt-in-fwd-start{ transform:rotateY(94deg); opacity:0; transition:none; }
+  #app.pt-in-back-start{ transform:rotateY(-94deg); opacity:0; transition:none; }
+  @media (prefers-reduced-motion: reduce){
+    #app{ transition:opacity .2s ease; transform:none !important; }
+  }
+
+  /* corner fold — decorative "real paper" cue */
+  .corner-fold{
+    position:absolute; top:0; right:0; width:30px; height:30px;
+    background:linear-gradient(135deg, transparent 50%, rgba(122,46,61,0.14) 50%);
+    border-bottom-left-radius:8px;
+    pointer-events:none;
+  }
+
+  /* floating hearts on cover */
+  .float-heart{
+    position:absolute; bottom:-10px; font-size:15px; opacity:0;
+    animation:floatUp 6s ease-in infinite;
+    pointer-events:none;
+  }
+  @keyframes floatUp{
+    0%{ opacity:0; transform:translateY(0) translateX(0) rotate(0deg); }
+    12%{ opacity:.55; }
+    85%{ opacity:.35; }
+    100%{ opacity:0; transform:translateY(-260px) translateX(var(--drift,10px)) rotate(18deg); }
+  }
+
+  @keyframes rowIn{
+    from{ opacity:0; transform:translateY(8px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .eyebrow{
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--wine); font-weight:700; margin-bottom:6px;
+  }
+  h1,h2,h3{ font-family:'Cormorant Garamond', serif; margin:0; }
+
+  /* ---------- COVER ---------- */
+  .cover{
+    background: linear-gradient(180deg, var(--paper-dark), var(--paper));
+    border:1px solid rgba(122,46,61,0.18);
+    border-radius:22px;
+    padding:72px 30px 52px;
+    text-align:center;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .cover::before{
+    content:"";
+    position:absolute; inset:12px;
+    border:1px solid rgba(185,151,91,0.5);
+    border-radius:14px;
+    pointer-events:none;
+  }
+  .cover-title{
+    font-size:50px; font-weight:600; color:var(--wine-dark);
+    line-height:1.15;
+  }
+  .cover-title[contenteditable]:focus{ outline:2px dashed var(--gold); border-radius:6px;}
+  .cover-sub{
+    font-family:'Caveat',cursive; font-size:24px; color:var(--ink-soft);
+    margin-top:12px;
+  }
+  .cover-sub[contenteditable]:focus{ outline:2px dashed var(--gold); border-radius:6px;}
+  .cover-emojis{
+    font-size:19px; margin-top:20px; opacity:.85; letter-spacing:2px;
+  }
+  .divider{
+    width:64px; height:2px; margin:26px auto; background:var(--gold); opacity:.7;
+  }
+  .btn{
+    font-family:'Manrope',sans-serif; font-weight:700; font-size:14px;
+    letter-spacing:.03em;
+    border:none; cursor:pointer; border-radius:999px;
+    padding:14px 32px;
+    background:var(--wine); color:#fff;
+    box-shadow:0 10px 22px -10px rgba(122,46,61,0.6);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover{ transform:translateY(-2px); box-shadow:0 14px 26px -10px rgba(122,46,61,0.7); }
+  .btn.ghost{
+    background:transparent; color:var(--wine); border:1.5px solid var(--wine);
+    box-shadow:none;
+  }
+  .btn.small{ padding:8px 16px; font-size:12px; }
+
+  /* ---------- SEAL (signature element) ---------- */
+  .seal{
+    width:68px; height:68px; border-radius:50%;
+    margin:0 auto 20px;
+    background: radial-gradient(circle at 35% 30%, #9c4356, var(--wine) 55%, var(--wine-dark) 100%);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.25), 0 6px 14px -6px rgba(0,0,0,0.4);
+    font-size:28px; color:#f3e3c8;
+    position:relative;
+    cursor:pointer;
+    animation: sealBreathe 3.2s ease-in-out infinite;
+  }
+  @keyframes sealBreathe{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.06); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .seal{ animation:none; }
+  }
+
+  .foreword-page{ position:relative; }
+
+  /* ---------- TOC ---------- */
+  .toc-header{ text-align:center; margin-bottom:22px; }
+  .toc-header h2{ font-size:28px; color:var(--wine-dark); font-weight:600; }
+  .toc-header p{ font-family:'Caveat',cursive; font-size:18px; color:var(--ink-soft); margin-top:4px;}
+
+  .letter-list{ display:flex; flex-direction:column; gap:10px; }
+  .letter-row{
+    display:flex; align-items:center; gap:14px;
+    background:var(--paper-dark);
+    border:1px solid rgba(122,46,61,0.14);
+    border-radius:14px;
+    padding:12px 16px;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .letter-row{ opacity:0; animation:rowIn .4s ease forwards; }
+  .letter-row:hover{ transform:translateX(3px) rotate(-.4deg); box-shadow:var(--shadow); }
+  .letter-seal{
+    flex:0 0 auto; width:38px; height:38px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #9c4356, var(--wine) 55%, var(--wine-dark) 100%);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+    box-shadow: inset 0 2px 3px rgba(255,255,255,0.25), 0 4px 8px -4px rgba(0,0,0,0.4);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .letter-row.opened .letter-seal{
+    background: radial-gradient(circle at 35% 30%, #b7a685, var(--gold) 55%, #8f7442 100%);
+    filter: saturate(.6);
+    transform:scale(1.08) rotate(-8deg);
+  }
+  .letter-meta{ flex:1; min-width:0; }
+  .letter-meta .num{ font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--sage); font-weight:700; }
+  .letter-meta .title{ font-size:19px; font-weight:600; color:var(--ink); }
+  .letter-meta .title[contenteditable]:focus{ outline:2px dashed var(--gold); border-radius:4px; }
+  .letter-row .arrow{ color:var(--wine); font-size:18px; opacity:.6; }
+
+  .letter-seal.editable-seal{ cursor:pointer; position:relative; }
+  .seal-edit-badge{
+    position:absolute; right:-4px; bottom:-4px;
+    width:16px; height:16px; border-radius:50%;
+    background:var(--paper); border:1px solid var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; color:var(--wine);
+  }
+  .emoji-picker{
+    display:flex; flex-wrap:wrap; gap:6px;
+    background:var(--paper); border:1px solid rgba(122,46,61,0.2);
+    border-radius:12px; padding:10px;
+    margin:-2px 0 10px;
+    animation:rowIn .18s ease;
+  }
+  .emoji-choice{
+    width:34px; height:34px; border-radius:9px;
+    border:1px solid rgba(122,46,61,0.15); background:#fff;
+    font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:transform .12s ease;
+  }
+  .emoji-choice:hover{ transform:scale(1.12); background:var(--blush); }
+  .emoji-choice.custom{ color:var(--wine); font-weight:700; }
+
+  /* ---------- LETTER PAGE ---------- */
+  .letter-page{
+    background:var(--paper-dark);
+    border:1px solid rgba(122,46,61,0.16);
+    border-radius:18px;
+    padding:30px 24px 26px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .back-link{
+    display:inline-flex; align-items:center; gap:6px;
+    color:var(--wine); font-weight:700; font-size:13px;
+    text-decoration:none; cursor:pointer; margin-bottom:16px;
+    background:none; border:none; padding:0; font-family:'Manrope',sans-serif;
+  }
+  .letter-title{
+    font-size:30px; color:var(--wine-dark); font-weight:600; margin-bottom:4px;
+  }
+  .letter-title[contenteditable]:focus{ outline:2px dashed var(--gold); border-radius:6px;}
+  .letter-num{ font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--sage); font-weight:700; margin-bottom:14px;}
+
+  .letter-text{
+    font-family:'Caveat',cursive;
+    font-size:25px; line-height:1.5;
+    color:var(--ink);
+    white-space:pre-wrap;
+    padding:18px 4px 6px;
+    border-top:1px dashed rgba(122,46,61,0.3);
+    border-bottom:1px dashed rgba(122,46,61,0.3);
+    margin:6px 0 20px;
+  }
+  .letter-text[contenteditable]:focus{ outline:2px dashed var(--gold); border-radius:6px;}
+
+  .media-block{ margin-bottom:18px; }
+  .media-label{
+    font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--sage); font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px;
+  }
+  .photo-frame{
+    width:100%; border-radius:12px; overflow:hidden;
+    border:1px solid rgba(122,46,61,0.2);
+    background:repeating-linear-gradient(45deg, rgba(122,46,61,0.05) 0 10px, rgba(122,46,61,0.02) 10px 20px);
+    min-height:120px; display:flex; align-items:center; justify-content:center;
+    color:var(--ink-soft); font-size:13px; text-align:center; padding:10px;
+  }
+  .photo-frame img{ width:100%; display:block; }
+
+  audio{ width:100%; }
+  .empty-audio{
+    font-size:13px; color:var(--ink-soft); font-style:italic;
+    background:rgba(122,46,61,0.05); border-radius:10px; padding:10px 14px;
+  }
+
+  .edit-panel{
+    margin-top:8px; padding-top:14px; border-top:1px dashed rgba(122,46,61,0.25);
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .edit-panel input[type="text"]{
+    width:100%; padding:9px 12px; border-radius:8px; border:1px solid rgba(122,46,61,0.3);
+    font-family:'Manrope',sans-serif; font-size:13px; background:#fff;
+  }
+  .edit-panel label.upload{
+    display:inline-block; font-size:12px; font-weight:700; color:var(--wine);
+    border:1.5px dashed var(--wine); border-radius:8px; padding:8px 12px; cursor:pointer; text-align:center;
+  }
+  .edit-panel input[type="file"]{ display:none; }
+
+  .media-label{ justify-content:space-between; }
+  .remove-block{
+    background:none; border:none; cursor:pointer;
+    color:var(--wine); opacity:.55; font-size:15px; line-height:1;
+    padding:2px 4px; font-family:'Manrope',sans-serif;
+  }
+  .remove-block:hover{ opacity:1; }
+  .add-blocks{
+    display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 20px;
+  }
+  .add-chip{
+    font-size:12px; font-weight:700; color:var(--sage);
+    border:1.5px dashed var(--sage); border-radius:999px;
+    background:none; cursor:pointer; padding:7px 13px;
+    font-family:'Manrope',sans-serif;
+  }
+  .add-chip:hover{ background:rgba(110,127,92,0.08); }
+
+  .delete-letter{
+    background:none; border:none; cursor:pointer; color:var(--wine);
+    opacity:.5; font-size:16px; padding:4px 6px; flex:0 0 auto;
+  }
+  .delete-letter:hover{ opacity:1; }
+  .add-letter-btn{
+    width:100%; margin-top:6px;
+    background:none; border:1.5px dashed var(--wine); border-radius:14px;
+    color:var(--wine); font-weight:700; font-size:14px; padding:14px;
+    cursor:pointer; font-family:'Manrope',sans-serif;
+  }
+  .add-letter-btn:hover{ background:rgba(122,46,61,0.06); }
+
+  /* ---------- FOOTER / EDIT TOGGLE ---------- */
+  .footer-bar{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:18px; padding:0 4px;
+  }
+  .edit-toggle{
+    font-size:12px; color:var(--ink-soft); background:none; border:none; cursor:pointer;
+    text-decoration:underline; font-family:'Manrope',sans-serif;
+  }
+  .edit-bar{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--blush); border-radius:12px; padding:10px 14px; margin-bottom:16px;
+    font-size:12.5px; color:var(--wine-dark); font-weight:600;
+  }
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; padding:10px 18px; border-radius:999px;
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s ease;
+    z-index:50;
+  }
+  .toast.show{ opacity:1; }
+
+  @media (max-width:480px){
+    body{ padding:16px 10px 40px; align-items:flex-start; }
+    .cover{ padding:52px 20px 36px; border-radius:18px; }
+    .cover-title{ font-size:36px; }
+    .cover-sub{ font-size:20px; }
+    .cover-emojis{ font-size:16px; letter-spacing:1px; }
+    .seal{ width:58px; height:58px; font-size:24px; }
+    .letter-page{ padding:24px 18px 22px; border-radius:14px; }
+    .letter-title{ font-size:25px; }
+    .letter-text{ font-size:21px; }
+    .toc-header h2{ font-size:24px; }
+    .letter-row{ padding:10px 12px; gap:10px; }
+    .letter-meta .title{ font-size:17px; }
+    .btn{ padding:12px 24px; font-size:13px; }
+    .edit-panel input[type="text"]{ font-size:16px; }
+  }
+  @media (max-width:360px){
+    .cover-title{ font-size:30px; }
+    .cover-emojis{ display:none; }
+  }
+</style>
+</head>
+<body>
+<div id="stage"><div id="app"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DEFAULT_LETTERS = [
+  {emoji:"😔", title:"Когда тебе грустно", text:"Знаю, что сегодня тяжело. Ты не обязана быть сильной каждую секунду. Позволь себе погрустить — а я рядом, даже если не могу обнять прямо сейчас. Ты справишься, как справлялась всегда. Я в тебя верю и очень тебя люблю.", photo:"", music:"", voice:""},
+  {emoji:"🥺", title:"Когда скучаешь по мне", text:"Если ты читаешь это — значит, соскучилась. Я тоже скучаю, сильнее, чем умею сказать словами. Закрой глаза на секунду и представь, что я обнимаю тебя. Совсем скоро мы снова будем рядом.", photo:"", music:"", voice:""},
+  {emoji:"💭", title:"Когда сомневаешься в себе", text:"Ты умнее, добрее и сильнее, чем сама думаешь. Я вижу, сколько ты вкладываешь в то, что делаешь, и горжусь тобой каждый день. Не позволяй сомнениям решать за тебя — ты справишься.", photo:"", music:"", voice:""},
+  {emoji:"☕", title:"Когда просто плохой день", text:"Плохие дни случаются у всех, и это нормально. Позволь себе чай, любимый плед и немного тишины. Завтра будет новый день, а я всегда на связи, если что.", photo:"", music:"", voice:""},
+  {emoji:"🤗", title:"Когда хочется обняться", text:"Представь, что я рядом и обнимаю тебя крепко-крепко. Вдохни поглубже — я почти чувствую, как ты улыбаешься. Скоро обнимемся по-настоящему.", photo:"", music:"", voice:""},
+  {emoji:"😤", title:"Когда злишься на весь мир", text:"Даже самым спокойным людям иногда хочется всё разнести. Позлись, выдохни, покричи в подушку — я не осуждаю. Я рядом, что бы ни случилось.", photo:"", music:"", voice:""},
+  {emoji:"🌙", title:"Когда не можешь уснуть", text:"Если сон не идёт — просто полежи и подыши. Я рядом мысленно, считаю вместе с тобой овец. Спокойной ночи, любимая, увидимся во снах.", photo:"", music:"", voice:""},
+  {emoji:"✨", title:"Когда хочется чуда", text:"Иногда хочется, чтобы случилось что-то волшебное. Ты и есть моё маленькое чудо, просто помни об этом. Хорошее обязательно случится.", photo:"", music:"", voice:""},
+  {emoji:"🎉", title:"Когда особенный день", text:"Сегодня особенный день — и я хочу, чтобы ты это почувствовала. Ты заслуживаешь только самого лучшего. С праздником, любимая!", photo:"", music:"", voice:""},
+  {emoji:"💌", title:"Просто так", text:"Не нужен повод, чтобы сказать: я тебя люблю. Просто хотел, чтобы ты улыбнулась прямо сейчас. Обычный день, но с тобой он особенный.", photo:"", music:"", voice:""}
+];
+
+const DEFAULT_FOREWORD = {
+  title: "Прежде чем начнёшь читать",
+  text: "Привет, любимая.\n\nЯ сделал этот блокнот, чтобы у тебя всегда было что-то тёплое под рукой — на грустный день, на скучный вечер, на момент, когда просто нужно почувствовать, что ты не одна.\n\nЗдесь десять писем на разные настроения. Не обязательно читать их по порядку — открывай то, что откликается прямо сейчас. Где-то будет фото, где-то музыка, где-то моё голосовое — как будто я рядом, даже когда меня нет физически.\n\nЭтот блокнот будет расти: со временем здесь появятся новые письма. Возвращайся к нему, когда захочешь — он всегда будет ждать тебя.\n\nС любовью,\nтвой человек 💛"
+};
+
+let data = {
+  coverTitle: "Для тебя",
+  coverSub: "маленький блокнот, который всегда рядом",
+  foreword: JSON.parse(JSON.stringify(DEFAULT_FOREWORD)),
+  letters: JSON.parse(JSON.stringify(DEFAULT_LETTERS))
+};
+
+let state = { view:"cover", idx:0, editMode:false, opened:new Set(), pickerIndex:null };
+let tapCount = 0;
+let tapTimer = null;
+
+// ---------- НАСТРОЙКИ GITHUB (заполню, когда пришлёшь свои данные) ----------
+const GH_OWNER  = "Silent-Enigma-HQ";
+const GH_REPO   = "My_beloved";
+const GH_BRANCH = "main";
+const GH_PATH   = "data/notebook.json";
+const GH_TOKEN  = "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";
+// -------------------------------------------------------------------------
+
+function b64EncodeUtf8(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64DecodeUtf8(str){
+  return decodeURIComponent(escape(atob(str)));
+}
+
+async function loadData(){
+  try{
+    const res = await fetch(
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}&t=${Date.now()}`,
+      { headers: { "Accept": "application/vnd.github+json" } }
+    );
+    if(res.ok){
+      const file = await res.json();
+      const decoded = b64DecodeUtf8(file.content.replace(/\n/g,''));
+      const parsed = JSON.parse(decoded);
+      if(parsed && parsed.letters){
+        data = parsed;
+        if(!data.foreword) data.foreword = JSON.parse(JSON.stringify(DEFAULT_FOREWORD));
+      }
+    }
+    // если res не ok (файла ещё нет) — просто остаёмся на данных по умолчанию
+  }catch(e){ /* нет сети или файла ещё нет — используем дефолт */ }
+  render();
+}
+
+async function saveData(){
+  try{
+    let sha = null;
+    const getRes = await fetch(
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}?ref=${GH_BRANCH}&t=${Date.now()}`,
+      { headers: { "Authorization": `Bearer ${GH_TOKEN}`, "Accept": "application/vnd.github+json" } }
+    );
+    if(getRes.ok){
+      const cur = await getRes.json();
+      sha = cur.sha;
+    }
+    const body = {
+      message: "обновление блокнота",
+      content: b64EncodeUtf8(JSON.stringify(data, null, 2)),
+      branch: GH_BRANCH
+    };
+    if(sha) body.sha = sha;
+
+    const putRes = await fetch(
+      `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`,
+      {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${GH_TOKEN}`,
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      }
+    );
+    showToast(putRes.ok ? "Сохранено" : "Не удалось сохранить");
+  }catch(e){
+    showToast("Ошибка сохранения");
+  }
+}
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+function flipTo(changeFn, direction){
+  const app = document.getElementById('app');
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced){ changeFn(); render(); return; }
+  const outCls = direction === 'back' ? 'pt-out-back' : 'pt-out-fwd';
+  app.classList.add(outCls);
+  setTimeout(()=>{
+    changeFn();
+    render();
+    const newApp = document.getElementById('app');
+    newApp.classList.remove(outCls);
+    const startCls = direction === 'back' ? 'pt-in-back-start' : 'pt-in-fwd-start';
+    newApp.classList.add(startCls);
+    void newApp.offsetWidth;
+    newApp.classList.remove(startCls);
+  }, 300);
+}
+
+function goCover(){ flipTo(()=>{ state.view="cover"; }, 'back'); }
+function goForeword(direction){ flipTo(()=>{ state.view="foreword"; }, direction || 'forward'); }
+function goToc(direction){ flipTo(()=>{ state.view="toc"; }, direction || 'forward'); }
+function openLetter(i, direction){
+  if(direction === undefined){
+    direction = (state.view === 'letter' && i < state.idx) ? 'back' : 'forward';
+  }
+  flipTo(()=>{ state.idx=i; state.view="letter"; state.opened.add(i); }, direction);
+}
+function toggleEdit(){ state.editMode = false; render(); }
+
+function tapSeal(){
+  tapCount++;
+  clearTimeout(tapTimer);
+  tapTimer = setTimeout(()=>{ tapCount = 0; }, 1500);
+  if(tapCount >= 5){
+    tapCount = 0;
+    requestEditAccess();
+  }
+}
+
+function requestEditAccess(){
+  if(!data.pin){
+    const p1 = prompt("Придумай PIN-код для режима редактирования (его будешь знать только ты):");
+    if(!p1) return;
+    const p2 = prompt("Повтори PIN-код ещё раз:");
+    if(p1 !== p2){ alert("PIN не совпал, попробуй ещё раз."); return; }
+    data.pin = p1;
+    state.editMode = true;
+    saveData();
+    render();
+  } else {
+    const p = prompt("Введи PIN-код:");
+    if(p === null) return;
+    if(p === data.pin){ state.editMode = true; render(); }
+    else alert("Неверный PIN");
+  }
+}
+
+function addLetter(){
+  data.letters.push({emoji:"💌", title:"Новое письмо", text:"", photo:"", music:"", voice:"", blocks:{photo:true, music:true, voice:true}});
+  openLetter(data.letters.length-1);
+}
+
+function deleteLetter(i){
+  if(!confirm("Удалить это письмо?")) return;
+  data.letters.splice(i,1);
+  if(state.idx>=data.letters.length) state.idx = data.letters.length-1;
+  state.pickerIndex = null;
+  state.view = "toc";
+  render();
+}
+
+function toggleEmojiPicker(i){
+  state.pickerIndex = (state.pickerIndex === i) ? null : i;
+  render();
+}
+function setLetterEmoji(i, emoji){
+  data.letters[i].emoji = emoji;
+  state.pickerIndex = null;
+  render();
+}
+function customLetterEmoji(i){
+  const val = prompt("Впиши свою иконку (эмодзи или коротко текстом):", data.letters[i].emoji || "");
+  if(val !== null && val.trim() !== ""){
+    data.letters[i].emoji = val.trim().slice(0,4);
+  }
+  state.pickerIndex = null;
+  render();
+}
+
+function updateField(path, value){
+  const keys = path.split(".");
+  let obj = data;
+  for(let i=0;i<keys.length-1;i++){ obj = obj[keys[i]]; }
+  obj[keys[keys.length-1]] = value;
+}
+
+function getBlocks(l){
+  return l.blocks || {photo:true, music:true, voice:true};
+}
+
+function toggleBlock(i, type, on){
+  const l = data.letters[i];
+  const blocks = l.blocks ? l.blocks : {photo:true, music:true, voice:true};
+  blocks[type] = on;
+  l.blocks = blocks;
+  render();
+}
+
+function esc(s){
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function render(){
+  const app = document.getElementById("app");
+  if(state.view==="cover") app.innerHTML = renderCover();
+  else if(state.view==="foreword") app.innerHTML = renderForeword();
+  else if(state.view==="toc") app.innerHTML = renderToc();
+  else app.innerHTML = renderLetter(state.idx);
+  attachContentEditableHandlers();
+}
+
+function attachContentEditableHandlers(){
+  document.querySelectorAll("[data-bind]").forEach(el=>{
+    el.addEventListener("input", ()=>{ updateField(el.getAttribute("data-bind"), el.innerText); });
+  });
+}
+
+function renderEditToggle(){
+  if(!state.editMode) return '';
+  return `<div class="footer-bar">
+    <button class="edit-toggle" onclick="toggleEdit()">Готово</button>
+    <button class="btn small" onclick="saveData()">Сохранить</button>
+  </div>`;
+}
+
+function renderCover(){
+  return `
+  <div class="cover">
+    <div class="corner-fold"></div>
+    <span class="float-heart" style="left:10%; animation-delay:.2s; --drift:14px;">💗</span>
+    <span class="float-heart" style="left:80%; animation-delay:1.4s; --drift:-10px;">✨</span>
+    <span class="float-heart" style="left:42%; animation-delay:2.6s; --drift:8px;">🤍</span>
+    <span class="float-heart" style="left:66%; animation-delay:3.8s; --drift:-16px;">💌</span>
+    <span class="float-heart" style="left:25%; animation-delay:5s; --drift:12px;">🌸</span>
+    <span class="float-heart" style="left:55%; animation-delay:.9s; --drift:-8px;">🕊️</span>
+    <div class="seal" onclick="tapSeal()">💌</div>
+    <div class="eyebrow">блокнот с письмами</div>
+    <h1 class="cover-title" ${state.editMode?'contenteditable="true" data-bind="coverTitle"':''}>${esc(data.coverTitle)}</h1>
+    <div class="cover-sub" ${state.editMode?'contenteditable="true" data-bind="coverSub"':''}>${esc(data.coverSub)}</div>
+    <div class="cover-emojis">🌷 &nbsp; 🤍 &nbsp; 🎀 &nbsp; ☁️ &nbsp; 🍯</div>
+    <div class="divider"></div>
+    <button class="btn" onclick="goForeword()">Открыть блокнот</button>
+  </div>
+  ${renderEditToggle()}
+  `;
+}
+
+function renderForeword(){
+  const f = data.foreword;
+  return `
+  <div class="letter-page foreword-page">
+    <div class="corner-fold"></div>
+    <button class="back-link" onclick="goCover()">‹ на обложку</button>
+    <div class="letter-num">💛 предисловие</div>
+    <h2 class="letter-title" ${state.editMode?'contenteditable="true" data-bind="foreword.title"':''}>${esc(f.title)}</h2>
+    <div class="letter-text" ${state.editMode?'contenteditable="true" data-bind="foreword.text"':''}>${esc(f.text)}</div>
+    <div style="display:flex; justify-content:center; margin-top:8px;">
+      <button class="btn" onclick="goToc()">К содержанию →</button>
+    </div>
+  </div>
+  ${renderEditToggle()}
+  `;
+}
+
+const EMOJI_CHOICES = ["😔","🥺","💭","☕","🤗","😤","🌙","✨","🎉","💌","❤️","🧡","💛","💚","💙","💜","🤍","🌸","🌷","🎀","🕊️","🌟","🔥","😴","🥰","🙈","☁️","🍯","🎈","🎂"];
+
+function renderToc(){
+  const rows = data.letters.map((l,i)=>`
+    <div class="letter-row" style="animation-delay:${Math.min(i*0.06,0.6)}s" onclick="${state.editMode ? '' : `openLetter(${i})`}">
+      <div class="letter-seal ${state.opened.has(i)?'opened':''} ${state.editMode?'editable-seal':''}" ${state.editMode?`onclick="event.stopPropagation(); toggleEmojiPicker(${i})"`:''}>${l.emoji||"💌"}${state.editMode?'<span class="seal-edit-badge">✎</span>':''}</div>
+      <div class="letter-meta">
+        <div class="num">Письмо ${i+1}</div>
+        <div class="title" ${state.editMode?`contenteditable="true" data-bind="letters.${i}.title"`:''}>${esc(l.title)}</div>
+      </div>
+      ${state.editMode ? `<button class="btn small ghost" onclick="event.stopPropagation(); openLetter(${i})">Открыть</button><button class="delete-letter" onclick="event.stopPropagation(); deleteLetter(${i})" title="удалить письмо">✕</button>` : `<div class="arrow">›</div>`}
+    </div>
+    ${state.editMode && state.pickerIndex===i ? `
+    <div class="emoji-picker" onclick="event.stopPropagation()">
+      ${EMOJI_CHOICES.map(e=>`<button class="emoji-choice" onclick="setLetterEmoji(${i}, '${e}')">${e}</button>`).join('')}
+      <button class="emoji-choice custom" onclick="customLetterEmoji(${i})" title="своё">✏️</button>
+    </div>` : ''}
+  `).join("");
+
+  return `
+  <button class="back-link" onclick="goForeword('back')">‹ к предисловию</button>
+  <div class="toc-header">
+    <h2>Содержание</h2>
+    <p>выбирай письмо под настроение</p>
+  </div>
+  <div class="letter-list">${rows || (state.editMode ? '' : '<div class="empty-audio">писем пока нет</div>')}</div>
+  ${state.editMode ? `<button class="add-letter-btn" onclick="addLetter()">+ добавить письмо</button>` : ''}
+  ${renderEditToggle()}
+  `;
+}
+
+function renderLetter(i){
+  const l = data.letters[i];
+  const nav = `
+    <div style="display:flex; justify-content:space-between; margin-top:18px;">
+      <button class="btn ghost small" ${i===0?'disabled style="opacity:.4"':''} onclick="openLetter(${i-1}, 'back')">‹ пред.</button>
+      <button class="btn ghost small" onclick="goToc('back')">к содержанию</button>
+      <button class="btn ghost small" ${i===data.letters.length-1?'disabled style="opacity:.4"':''} onclick="openLetter(${i+1}, 'forward')">след. ›</button>
+    </div>`;
+
+  const blocks = getBlocks(l);
+
+  const photoBlock = !blocks.photo ? '' : `
+    <div class="media-block">
+      <div class="media-label"><span>📷 фото</span>${state.editMode ? `<button class="remove-block" onclick="toggleBlock(${i},'photo',false)" title="убрать блок">✕</button>` : ''}</div>
+      <div class="photo-frame">${l.photo ? `<img src="${esc(l.photo)}" alt="фото">` : 'здесь появится фото'}</div>
+      ${state.editMode ? `
+        <div class="edit-panel">
+          <input type="text" placeholder="вставь ссылку на фото (например, с imgbb.com)" value="${esc(l.photo)}" oninput="updateField('letters.${i}.photo', this.value)">
+        </div>` : ''}
+    </div>`;
+
+  const musicBlock = !blocks.music ? '' : `
+    <div class="media-block">
+      <div class="media-label"><span>🎵 музыка</span>${state.editMode ? `<button class="remove-block" onclick="toggleBlock(${i},'music',false)" title="убрать блок">✕</button>` : ''}</div>
+      ${l.music ? `<audio controls src="${esc(l.music)}"></audio>` : `<div class="empty-audio">трек пока не добавлен</div>`}
+      ${state.editMode ? `
+        <div class="edit-panel">
+          <input type="text" placeholder="вставь ссылку на аудиофайл (mp3)" value="${esc(l.music)}" oninput="updateField('letters.${i}.music', this.value)">
+        </div>` : ''}
+    </div>`;
+
+  const voiceBlock = !blocks.voice ? '' : `
+    <div class="media-block">
+      <div class="media-label"><span>🎙️ голосовое сообщение</span>${state.editMode ? `<button class="remove-block" onclick="toggleBlock(${i},'voice',false)" title="убрать блок">✕</button>` : ''}</div>
+      ${l.voice ? `<audio controls src="${esc(l.voice)}"></audio>` : `<div class="empty-audio">голосового пока нет</div>`}
+      ${state.editMode ? `
+        <div class="edit-panel">
+          <input type="text" placeholder="вставь ссылку на голосовое (mp3/ogg)" value="${esc(l.voice)}" oninput="updateField('letters.${i}.voice', this.value)">
+        </div>` : ''}
+    </div>`;
+
+  const missingChips = [];
+  if(state.editMode){
+    if(!blocks.photo) missingChips.push(`<button class="add-chip" onclick="toggleBlock(${i},'photo',true)">+ фото</button>`);
+    if(!blocks.music) missingChips.push(`<button class="add-chip" onclick="toggleBlock(${i},'music',true)">+ музыка</button>`);
+    if(!blocks.voice) missingChips.push(`<button class="add-chip" onclick="toggleBlock(${i},'voice',true)">+ голосовое</button>`);
+  }
+  const addBlocksRow = missingChips.length ? `<div class="add-blocks">${missingChips.join('')}</div>` : '';
+
+  return `
+  <div class="letter-page">
+    <div class="corner-fold"></div>
+    <button class="back-link" onclick="goToc('back')">‹ к содержанию</button>
+    <div class="letter-num">Письмо ${i+1} из ${data.letters.length}</div>
+    <h2 class="letter-title" ${state.editMode?`contenteditable="true" data-bind="letters.${i}.title"`:''}>${l.emoji||""} ${esc(l.title)}</h2>
+    <div class="letter-text" ${state.editMode?`contenteditable="true" data-bind="letters.${i}.text"`:''}>${esc(l.text)}</div>
+    ${photoBlock}
+    ${musicBlock}
+    ${voiceBlock}
+    ${addBlocksRow}
+    ${nav}
+  </div>
+  ${renderEditToggle()}
+  `;
+}
+
+loadData();
+</script>
+</body>
+</html>
